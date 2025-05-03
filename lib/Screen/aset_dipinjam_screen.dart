@@ -16,7 +16,7 @@ class _AsetDipinjamScreenState extends State<AsetDipinjamScreen> {
       'sn': '1213$index',
       'kondisi': 'Baik',
       'peminjam': 'User ${index + 1}',
-      'telepon': '08${index}1234567${index}',
+      'telepon': '08${index}1234567$index',
       'lokasi':
           index % 3 == 0
               ? 'Baceh'

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:asetcare/Screen/loginscreen.dart';
 
 class RequestUserScreen extends StatelessWidget {
-  const RequestUserScreen({Key? key}) : super(key: key);
+  const RequestUserScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
