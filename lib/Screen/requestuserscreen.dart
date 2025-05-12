@@ -1,5 +1,27 @@
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:asetcare/Screen/loginscreen.dart';
+
+
+
+
+Future<void> sendRequestAccess(String nip, String email) async {
+  final url = Uri.parse('localhost:8000/api/request-user');
+
+  final response = await http.post(
+    url,
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'nip': nip, 'email': email}),
+  );
+
+  if (response.statusCode == 201) {
+    // Berhasil
+  } else {
+    // Gagal
+  }
+}
+
 
 class RequestUserScreen extends StatelessWidget {
   const RequestUserScreen({super.key});
@@ -12,9 +34,8 @@ class RequestUserScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       appBar: AppBar(
-        title: const Text('Permintaan Akses'),
-        centerTitle: true,
-        backgroundColor: const Color(0xFF4A628A),
+        
+       
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -26,7 +47,7 @@ class RequestUserScreen extends StatelessWidget {
 
               const SizedBox(height: 32),
               const Text(
-                'Form Permintaan Akses',
+                'Permintaan Akses',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,

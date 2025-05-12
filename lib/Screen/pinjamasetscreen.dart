@@ -5,7 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
 
-
+void main() {
+  runApp(
+    const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: PinjamAsetScreen
+      (),
+    ),
+  );
+}
 class PinjamAsetScreen extends StatefulWidget {
   const PinjamAsetScreen({super.key});
 

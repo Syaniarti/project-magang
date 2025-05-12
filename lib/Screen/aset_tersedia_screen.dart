@@ -1,12 +1,11 @@
+import 'package:asetcare/Screen/pinjamasetscreen.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AsetTersediaScreen extends StatefulWidget {
-  
   final Map<String, dynamic>? newAsset;
   const AsetTersediaScreen({super.key, this.newAsset});
-
 
   @override
   State<AsetTersediaScreen> createState() => _AsetTersediaScreenState();
@@ -21,14 +20,14 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
   void initState() {
     super.initState();
     fetchAset(); // ambil semua aset saat pertama buka screen
-    
-  if (widget.newAsset != null) {
-    // Tambahkan aset baru ke daftar
-    setState(() {
-      daftarAset.insert(0, widget.newAsset!); // Masukkan ke urutan atas
-    });
+
+    if (widget.newAsset != null) {
+      // Tambahkan aset baru ke daftar
+      setState(() {
+        daftarAset.insert(0, widget.newAsset!); // Masukkan ke urutan atas
+      });
+    }
   }
-}
 
   Future<void> fetchAset({String? query}) async {
     setState(() {
@@ -191,7 +190,7 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
                                             const SizedBox(
                                               width: 110, // panjang label tetap
                                               child: Text(
-                                                "Nama Barang",
+                                                "Nama Aset",
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.w500,
                                                 ),
@@ -205,7 +204,7 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
                                             const SizedBox(
                                               width: 110,
                                               child: Text(
-                                                "SN",
+                                                "Serial Number",
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.w500,
                                                 ),
@@ -219,7 +218,7 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
                                             const SizedBox(
                                               width: 110,
                                               child: Text(
-                                                "Harga",
+                                                "Kondisi",
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.w500,
                                                 ),
@@ -234,7 +233,11 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
 
                                   // aksi pinjam
                                   IconButton(
-                                    onPressed: () {},
+                                    onPressed:
+                                        () => _showAssetDetailDialog(
+                                          context,
+                                          aset,
+                                        ),
                                     icon: const Icon(
                                       Icons.shopping_bag,
                                       color: Colors.amber,
@@ -251,7 +254,67 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
         ),
       ),
     );
+    
   }
+  void _showAssetDetailDialog(BuildContext context, dynamic aset) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(aset['title'] ?? 'Detail Aset'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (aset['thumbnail'] != null)
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              height: 150,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                image: DecorationImage(
+                  image: NetworkImage(aset['thumbnail']),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          Text("Deskripsi: ${aset['description'] ?? '-'}"),
+          const SizedBox(height: 8),
+          Text("Harga: \$${aset['price']}"),
+          const SizedBox(height: 8),
+          Text("Rating: ${aset['rating']}"),
+          const SizedBox(height: 8),
+          Text("Stok: ${aset['stock']} unit"),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Tutup'),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.amber,
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PinjamAsetScreen(),
+              ),
+            );
+          },
+          child: const Text(
+            'Ajukan Pinjam',
+            style: TextStyle(color: Colors.black),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+
 
   void _showAdminDialog(BuildContext context) {
     showDialog(
@@ -302,5 +365,6 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
             ),
           ),
     );
+    
   }
 }

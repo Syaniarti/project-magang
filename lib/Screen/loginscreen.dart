@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:asetcare/Screen/requestuserscreen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'homescreen.dart';
@@ -26,14 +27,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   if (username.isNotEmpty &&  password.isNotEmpty) {
     try {
-      final url = Uri.parse('https://dummyjson.com/auth/login');
+      final url = Uri.parse('http://127.0.0.1:8000/api/auth/check');
       final response = await http.post(
         url,
         headers: {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'username': username,
+          'email': username,
           'password': password,
           'expiresInMins': 30,
         }),
@@ -183,7 +184,23 @@ SizedBox(
                 SizedBox(height: screenHeight * 0.01),
 
 
-                
+          // Belum punya password
+TextButton(
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => RequestUserScreen()),
+    );
+  },
+  child: const Text(
+    'Belum punya password?',
+    style: TextStyle(
+      color: Color(0xFF4A628A),
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+    ),
+  ),
+),      
 SizedBox(height: screenHeight * 0.015),
 
 

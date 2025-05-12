@@ -12,40 +12,71 @@ void main() {
   );
 }
 
+class Aset {
+  final String namaAset;
+  final String serialNumber;
+  final String kondisi;
+  final String lokasiTerkini;
+  final DateTime tanggalUpload;
+  final String dokumentasiUrl; // URL atau path lokal
+
+  Aset({
+    required this.namaAset,
+    required this.serialNumber,
+    required this.kondisi,
+    required this.lokasiTerkini,
+    required this.tanggalUpload,
+    required this.dokumentasiUrl,
+  });
+}
+
 class HasilQrScreen extends StatelessWidget {
   final String qrData;
 
   const HasilQrScreen({super.key, required this.qrData});
 
+  Aset? getAsetData(String qrData) {
+    final dummyDatabase = {
+      '123456': Aset(
+        namaAset: 'Paku Baja',
+        serialNumber: 'SN-00123',
+        kondisi: 'Bagus',
+        lokasiTerkini: 'Gudang Utama',
+        tanggalUpload: DateTime(2024, 12, 25),
+        dokumentasiUrl:
+            'https://via.placeholder.com/150', // Ganti dengan asset lokal jika perlu
+      ),
+    };
+    return dummyDatabase[qrData];
+  }
+
+  Widget buildInfoField(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.blueAccent,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    Widget buildInfoField(String label, String value) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.blueAccent,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 2),
-          TextField(
-            enabled: false,
-            controller: TextEditingController(text: value),
-            decoration: const InputDecoration(
-              isDense: true,
-              contentPadding: EdgeInsets.only(bottom: 4),
-              border: UnderlineInputBorder(),
-              disabledBorder: UnderlineInputBorder(),
-            ),
-            style: const TextStyle(color: Colors.black),
-          ),
-          const SizedBox(height: 12),
-        ],
-      );
-    }
+    final aset = getAsetData(qrData);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -67,6 +98,33 @@ class HasilQrScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               buildInfoField("QR Data", qrData),
+              if (aset != null) ...[
+                buildInfoField("Nama Aset", aset.namaAset),
+                buildInfoField("Serial Number", aset.serialNumber),
+                buildInfoField("Kondisi", aset.kondisi),
+                buildInfoField("Lokasi Terkini", aset.lokasiTerkini),
+                buildInfoField("Tanggal Upload",
+                    '${aset.tanggalUpload.day}-${aset.tanggalUpload.month}-${aset.tanggalUpload.year}'),
+                const Text(
+                  "Dokumentasi Barang",
+                  style: TextStyle(
+                    color: Colors.blueAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Image.network(
+                  aset.dokumentasiUrl,
+                  height: 150,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ] else ...[
+                const Text(
+                  "Data aset tidak ditemukan.",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ],
               const SizedBox(height: 30),
               Center(
                 child: Column(
