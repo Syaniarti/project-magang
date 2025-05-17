@@ -1,3 +1,4 @@
+import 'package:asetcare/Screen/kembalikanasetscreen.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -16,27 +17,40 @@ class _AsetDipinjamScreenState extends State<AsetDipinjamScreen> {
   @override
   void initState() {
     super.initState();
-    fetchData();
+     fetchAsetDipinjam();
   }
 
-  Future<void> fetchData() async {
+  Future<void> fetchAsetDipinjam() async {
+     setState(() => isLoading = true);
     try {
-      final response = await http.get(
+      var request = http.Request(
+        'GET',
         Uri.parse('http://127.0.0.1:8000/api/aset-dipinjam'),
       );
+      final response = await request.send();
 
       if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        setState(() {
-          daftarAset = json['data'];
+        final responseData = await response.stream.bytesToString();
+        /*  catatan:
+            controller mengirim:
+            return response()->json(['data' => $dipinjam]);  (array di 'data')
+            Karena di AsetTersediaScreen kamu pakai array langsung,
+            kita cek, kalau bentuknya objek berisi 'data', ambil datanya.
+        */
+        final decoded = jsonDecode(responseData);
+        final List<dynamic> data =
+            decoded is List ? decoded : (decoded['data'] ?? []);
+
+         setState(() {
+          daftarAset = data;
           isLoading = false;
         });
       } else {
-        print('Error: ${response.reasonPhrase}');
+        print(response.reasonPhrase);
         setState(() => isLoading = false);
       }
     } catch (e) {
-      print('Terjadi kesalahan: $e');
+      print("Terjadi kesalahan: $e");
       setState(() => isLoading = false);
     }
   }
@@ -107,6 +121,7 @@ class _AsetDipinjamScreenState extends State<AsetDipinjamScreen> {
                                                     aset['dokumentasi_barang'],
                                                   ),
                                                   fit: BoxFit.cover,
+                                                  
                                                 )
                                               : null,
                                         ),
@@ -161,30 +176,65 @@ class _AsetDipinjamScreenState extends State<AsetDipinjamScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(aset['Nama_Aset'] ?? 'Detail Aset'),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titleTextStyle: const TextStyle(
+          color: Colors.black,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        title: const Text('Detail Aset Dipinjam'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (aset['dokumentasi_barang'] != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    aset['dokumentasi_barang'],
-                    height: 180,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              const SizedBox(height: 16),
+              _buildCardInfo("Nama Aset", aset['Nama_Aset']),
               _buildCardInfo("Serial Number", aset['Serial_Number']),
               _buildCardInfo("Nama Peminjam", aset['Nama_Peminjam']),
-              _buildCardInfo("No Telp/WhatsApp", aset['no_Telp']),
+              _buildCardInfo("No Telp/WhatsApp", aset['No_Telp']),
               _buildCardInfo("Kondisi", aset['Kondisi']),
               _buildCardInfo("Lokasi Terkini", aset['Lokasi_Terkini']),
               _buildCardInfo("Lokasi Tujuan", aset['Lokasi_Tujuan']),
               _buildCardInfo("Tanggal Peminjaman", aset['Tanggal_Peminjaman']),
+              if (aset['dokumentasi_barang'] != null) ...[
+                const SizedBox(height: 12),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "Dokumentasi Aset",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Card(
+                  margin: const EdgeInsets.symmetric(vertical: 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 4,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      aset['dokumentasi_barang'],
+                      height: 200,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (c, e, s) => const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Icon(
+                          Icons.broken_image,
+                          size: 60,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -193,12 +243,31 @@ class _AsetDipinjamScreenState extends State<AsetDipinjamScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Tutup'),
           ),
+          ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 43, 97, 133),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  // Navigasi ke halaman PinjamAsetScreen dan kirim data aset
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => KembalikanAsetScreen(),
+                    ),
+                  );
+                },
+                child: const Text(
+                  'Kembalikan Aset',
+                  style: TextStyle(color: Colors.black),
+                ),
+              ),
         ],
       ),
     );
   }
 
-  Widget _buildCardInfo(String title, String? value) {
+ Widget _buildCardInfo(String title, String? value) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -210,19 +279,19 @@ class _AsetDipinjamScreenState extends State<AsetDipinjamScreen> {
             Expanded(
               flex: 3,
               child: Text(
-                "$title:",
+                title,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             Expanded(
               flex: 5,
               child: Text(
-                value ?? '-',
-                style: const TextStyle(color: Colors.black87),
+                value ?? "-",
+                style: const TextStyle(color: Colors.black54),
               ),
             ),
           ],
