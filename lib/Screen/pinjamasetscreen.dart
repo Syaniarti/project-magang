@@ -30,7 +30,7 @@ class _PinjamAsetScreenState extends State<PinjamAsetScreen> {
   final _namaAsetController = TextEditingController();
   final _serialNumberController = TextEditingController();
   final _namaController = TextEditingController();
-   final _teleponController = TextEditingController();
+  final _teleponController = TextEditingController();
 
   @override
   void initState() {
@@ -43,13 +43,12 @@ class _PinjamAsetScreenState extends State<PinjamAsetScreen> {
     }
   }
 
- Future<void> _ambilDataProfil() async {
-  final prefs = await SharedPreferences.getInstance();
-  if (!mounted) return; // 👈 CEK DULU
+  Future<void> _ambilDataProfil() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return; // 👈 CEK DULU
 
-  _namaController.text = prefs.getString('nama') ?? '';
-}
-
+    _namaController.text = prefs.getString('nama') ?? '';
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
@@ -82,17 +81,19 @@ class _PinjamAsetScreenState extends State<PinjamAsetScreen> {
       try {
         var request = http.MultipartRequest(
           'POST',
-          Uri.parse('http://127.0.0.1:8000/api/asetdipinjam'),
+          Uri.parse('http://127.0.0.1:8000/api/pinjamaset'),
         );
+
+        request.headers['Accept'] = 'application/json';
 
         request.fields['Nama_Aset'] = _namaAsetController.text;
         request.fields['Serial_Number'] = _serialNumberController.text;
         request.fields['Nama_Peminjam'] = _namaController.text;
-        request.fields['no_telp'] = _teleponController.text;
+        request.fields['No_Telp'] = _teleponController.text;
         request.fields['Kondisi'] = selectedKondisi!;
         request.fields['Lokasi_Terkini'] = widget.Aset!['Lokasi_Terkini'];
         request.fields['Lokasi_Tujuan'] = selectedLokasi!;
-        request.fields['Tanggal_Peminjaman'] = selectedDate.toIso8601String();
+        request.fields['Tanggal_Peminjaman'] =  '${selectedDate.toIso8601String().substring(0,10)}'; 
 
         if (!kIsWeb) {
           var imageFile = await http.MultipartFile.fromPath(
@@ -183,6 +184,7 @@ class _PinjamAsetScreenState extends State<PinjamAsetScreen> {
     _namaAsetController.dispose();
     _serialNumberController.dispose();
     _namaController.dispose();
+    _teleponController.dispose();
     super.dispose();
   }
 
@@ -261,7 +263,7 @@ class _PinjamAsetScreenState extends State<PinjamAsetScreen> {
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _teleponController,
-                    readOnly: true,
+                    keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                     ),
