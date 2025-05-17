@@ -6,6 +6,8 @@ import 'pegawai_screen.dart';
 import 'package:asetcare/Screen/aset_tersedia_screen.dart';
 import 'package:asetcare/Screen/profilscreen.dart';
 import 'package:asetcare/Screen/admingudangscreen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 void main() {
   runApp(
@@ -20,19 +22,35 @@ class Homescreen extends StatefulWidget {
   State<Homescreen> createState() => _HomeScreenState();
 }
 
+
 class _HomeScreenState extends State<Homescreen> {
-  final int _selectedIndex = 0;
+  int _selectedIndex = 0;
+  String _name = '';
+  String _nip = '';
   bool isAdminApproved = false;
 
-  final List<Widget> _pages = [
-    const HomePage(),
-    const Qrscanscreen(),
-    const ProfilScreen(),
-  
-  ];
-
   @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _name = prefs.getString('nama') ?? '';
+      _nip = prefs.getString('nip') ?? '';
+    });
+  }
+ @override
   Widget build(BuildContext context) {
+    final List<Widget> _pages = [
+      HomePage(name: _name, nip: _nip),
+      const Qrscanscreen(),
+      const ProfilScreen(),
+    ];
+
+
     return Scaffold(
       extendBody: true,
       body: _pages[_selectedIndex],
@@ -64,7 +82,7 @@ class _HomeScreenState extends State<Homescreen> {
                     MaterialPageRoute(builder: (context) => const Homescreen()),
                   );
                 },
-                _selectedIndex == 0, // <== Ini dia parameter ke-4 yg dibutuhkan
+                _selectedIndex == 0, 
               ),
 
               _navItem("Profil", Icons.person, () {
@@ -101,7 +119,7 @@ class _HomeScreenState extends State<Homescreen> {
     );
   }
 
-  Widget _navItem(
+   Widget _navItem(
     String label,
     IconData icon,
     VoidCallback onTap,
@@ -133,10 +151,12 @@ class _HomeScreenState extends State<Homescreen> {
   }
 }
 
-class HomePage extends StatelessWidget {
-  final void Function(int index)? onMenuTap;
 
-  const HomePage({super.key, this.onMenuTap});
+class HomePage extends StatelessWidget {
+  final String name;
+  final String nip;
+
+  const HomePage({super.key, required this.name, required this.nip});
 
   void navigateTo(BuildContext context, Widget page) {
     Navigator.push(context, MaterialPageRoute(builder: (_) => page));
@@ -150,8 +170,7 @@ class HomePage extends StatelessWidget {
       _MenuItem("Aset Dipinjam", Icons.inventory, const AsetDipinjamScreen()),
       _MenuItem("Pegawai", Icons.group, const PegawaiScreen()),
     ];
-
-    final List<Map<String, String>> riwayatItems = [
+      final List<Map<String, String>> riwayatItems = [
       {"nama": "Kursi", "seri": "Seril23"},
       {"nama": "Meja", "seri": "Seril23"},
       {"nama": "Buku", "seri": "Seril23"},
@@ -159,7 +178,7 @@ class HomePage extends StatelessWidget {
       {"nama": "Pensil", "seri": "Seril23"},
     ];
 
-    return Scaffold(
+     return Scaffold(
       backgroundColor: const Color(0xFFFDFDFD),
       body: SafeArea(
         child: Column(
@@ -184,15 +203,14 @@ class HomePage extends StatelessWidget {
               child: SizedBox(
                 height: 140,
                 child: Stack(
-                  clipBehavior: Clip.none,
                   children: [
                     Positioned(
                       top: 0,
                       left: 0,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
+                        children: [
+                          const Text(
                             "Selamat Datang,",
                             style: TextStyle(
                               fontSize: 32,
@@ -200,18 +218,18 @@ class HomePage extends StatelessWidget {
                               color: Colors.white,
                             ),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
-                            "Syania",
-                            style: TextStyle(
+                            name,
+                            style: const TextStyle(
                               fontSize: 30,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
                           ),
                           Text(
-                            "NIP123456SA",
-                            style: TextStyle(
+                            nip,
+                            style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 20,
                             ),
@@ -220,15 +238,12 @@ class HomePage extends StatelessWidget {
                       ),
                     ),
                     Positioned(
-                      right: 0,
+                      right: 10,
                       bottom: -30,
                       child: ClipRRect(
-                        borderRadius: const BorderRadius.only(
-                          bottomRight: Radius.circular(0),
-                        ),
                         child: Image.asset(
                           'assets/pegawai.png',
-                          width: 200,
+                          width: 180,
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -239,24 +254,21 @@ class HomePage extends StatelessWidget {
                       child: IconButton(
                         icon: const Icon(
                           Icons.admin_panel_settings_rounded,
-                          color: Colors.white
-                          ,
+                          color: Colors.white,
                           size: 30,
                         ),
                         onPressed: () {
-  // Ambil state parent _HomeScreenState
-  final isApproved = context.findAncestorStateOfType<_HomeScreenState>()?.isAdminApproved ?? true;
+                          final isApproved = context.findAncestorStateOfType<_HomeScreenState>()?.isAdminApproved ?? false;
 
-  if (isApproved) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AdminPage()),
-    );
-  } else {
-    _showAdminDialog(context);
-  }
-},
-
+                          if (isApproved) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const AdminPage()),
+                            );
+                          } else {
+                            _showAdminDialog(context);
+                          }
+                        },
                       ),
                     ),
                   ],
@@ -287,16 +299,10 @@ class HomePage extends StatelessWidget {
                           height: 60,
                           decoration: BoxDecoration(
                             color: const Color.fromARGB(255, 182, 208, 235),
-                            border: Border.all(
-                              color: const Color.fromARGB(255, 9, 13, 14),
-                            ),
+                            border: Border.all(color: const Color.fromARGB(255, 9, 13, 14)),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Icon(
-                            item.icon,
-                            size: 30,
-                            color: const Color.fromARGB(255, 6, 65, 120),
-                          ),
+                          child: Icon(item.icon, size: 30, color: const Color.fromARGB(255, 6, 65, 120)),
                         ),
                         const SizedBox(height: 6),
                         Text(
@@ -313,7 +319,7 @@ class HomePage extends StatelessWidget {
                 },
               ),
             ),
-            const SizedBox(height: 1),
+            const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
@@ -345,114 +351,61 @@ class HomePage extends StatelessWidget {
                   itemCount: riwayatItems.length,
                   itemBuilder: (context, index) {
                     final item = riwayatItems[index];
-                    return GestureDetector(
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade400),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Kiri tengah: Gambar
-                            Container(
-                              width: 80,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade400,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Icon(
-                                Icons.image,
-                                size: 32,
-                                color: Colors.white,
-                              ),
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade400),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 80,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade400,
+                              borderRadius: BorderRadius.circular(6),
                             ),
-                            const SizedBox(width: 10),
-
-                            // Tengah: Nama + Seri
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item['nama']!,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    item['seri']!,
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Tengah Kanan: Tanggal Masuk/Keluar (vertikal)
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: const [
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.logout,
-                                      size: 18,
-                                      color: Colors.red,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      "28-02-2025",
-                                      style: TextStyle(fontSize: 14),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 8),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.login,
-                                      size: 18,
-                                      color: Colors.teal,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      "04-03-2025",
-                                      style: TextStyle(fontSize: 14),
-                                    ),
-                                  ],
-                                ),
+                            child: const Icon(Icons.image, size: 32, color: Colors.white),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(item['nama']!, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                                const SizedBox(height: 2),
+                                Text(item['seri']!, style: const TextStyle(fontSize: 14)),
                               ],
                             ),
-
-                            const SizedBox(width: 50),
-
-                            // Kanan: Status
-                            Container(
-                              alignment: Alignment.centerRight,
-                              height: 40,
-                              child: Text(
-                                "Selesai",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.green.shade700,
-                                ),
+                          ),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: const [
+                              Row(
+                                children: [
+                                  Icon(Icons.logout, size: 18, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text("28-02-2025", style: TextStyle(fontSize: 14)),
+                                ],
                               ),
-                            ),
-                          ],
-                        ),
+                              SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(Icons.login, size: 18, color: Colors.teal),
+                                  SizedBox(width: 8),
+                                  Text("04-03-2025", style: TextStyle(fontSize: 14)),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 20),
+                          Text("Selesai", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.green.shade700)),
+                        ],
                       ),
                     );
                   },
@@ -468,51 +421,32 @@ class HomePage extends StatelessWidget {
   void _showAdminDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder:
-          (context) => Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    "Anda tidak memiliki izin untuk\nmengakses halaman ini.\n\nSilakan hubungi administrator\njika membutuhkan akses\nsebagai Admin Gudang.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.blue[200],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 8,
-                      ),
-                    ),
-                    child: const Text(
-                      "Oke",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Anda tidak memiliki izin untuk\nmengakses halaman ini.\n\nSilakan hubungi administrator\njika membutuhkan akses\nsebagai Admin Gudang.",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
-            ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.blue[200],
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                ),
+                child: const Text("Oke", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ],
           ),
+        ),
+      ),
     );
   }
 }

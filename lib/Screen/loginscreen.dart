@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'package:asetcare/Screen/requestuserscreen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'homescreen.dart';
 import '../api/auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,62 +19,65 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscureText = true;
 
   void _login() async {
-  String username = _usernameController.text;
-  String nip = _nipController.text; // 
+  String email = _usernameController.text.trim();
+  String nip = _nipController.text.trim();
   String password = _passwordController.text;
 
-  print("username: $username, NIP: $nip, Password: $password");
-
-  if (username.isNotEmpty &&  password.isNotEmpty) {
+  if (email.isNotEmpty && nip.isNotEmpty && password.isNotEmpty) {
     try {
-      final url = Uri.parse('http://127.0.0.1:8000/api/auth/check');
+      final url = Uri.parse('http://127.0.0.1:8000/api/login');
       final response = await http.post(
         url,
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
-        body: jsonEncode({
-          'email': username,
-          'password': password,
-          'expiresInMins': 30,
-        }),
+        body: json.encode({'email': email, 'nip': nip, 'password': password}),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('Login successful!');
-        print(data);
+        print('Login berhasil: $data');
 
+        // Simpan data ke SharedPreferences
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+  
+        await prefs.setString('nama', data['user']['nama']); 
+        await prefs.setString('nip', data['user']['nip']);
+
+        // Tampilkan pesan sukses dan navigasi
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Login berhasil!")),
         );
 
-        Navigator.pushReplacement(
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const Homescreen()),
+          );
+        } else {
+          final data = jsonDecode(response.body);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "Login gagal: ${data['message'] ?? 'Cek kembali data Anda'}",
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(
           context,
-          MaterialPageRoute(builder: (context) => const Homescreen()),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Login gagal: ${response.reasonPhrase}")),
-        );
+        ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Terjadi kesalahan: $e")),
-      );
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Harap isi semua kolom!")));
     }
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Harap isi semua kolom!")),
-    );
   }
-}
-
-
 
   @override
   Widget build(BuildContext context) {
-    // Mendapatkan ukuran layar
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
 
@@ -84,7 +87,9 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Center(
         child: SingleChildScrollView(
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.1), // 10% dari lebar layar
+            padding: EdgeInsets.symmetric(
+              horizontal: screenWidth * 0.1,
+            ), 
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -92,7 +97,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   'Selamat datang Di',
                   style: TextStyle(
                     color: Color(0xFF76A9FA),
-                    fontSize: 28, // Gunakan ukuran font yang lebih kecil agar tidak terlalu besar
+                    fontSize:
+                        28, 
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -104,47 +110,33 @@ class _LoginScreenState extends State<LoginScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: screenHeight * 0.02), // Jarak yang lebih fleksibel
+                SizedBox(
+                  height: screenHeight * 0.02,
+                ), 
 
                 Image.asset(
                   "assets/gambar1.png",
-                  width: screenWidth * 0.4, // 80% dari lebar layar
-                  height: screenHeight * 0.3, // 30% dari tinggi layar
+                  width: screenWidth * 0.4, 
+                  height: screenHeight * 0.3, 
                   fit: BoxFit.cover,
                 ),
                 SizedBox(height: screenHeight * 0.03),
 
-                // username Field
+                // email Field
                 SizedBox(
-                width: screenWidth * 0.7, // Hanya 70% dari lebar layar
-                child: TextField(
-                  controller: _usernameController,
-                  decoration: InputDecoration(
-                    hintText: 'Username',
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16), // Perkecil padding dalam
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10), // Lebih kecil
-                      borderSide: const BorderSide(width: 1),
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: screenHeight * 0.015),
-
-                // NIP Field
-                SizedBox(
-                  width: screenWidth * 0.7, // Lebar dikurangi menjadi 70% dari lebar layar
+                  width: screenWidth * 0.7,
                   child: TextField(
-                    controller: _nipController,
+                    controller: _usernameController,
                     decoration: InputDecoration(
-                      hintText: 'NIP',
+                      hintText: 'Email',
                       filled: true,
                       fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16), // Perkecil padding dalam
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 16,
+                      ),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10), // Lebih kecil
+                        borderRadius: BorderRadius.circular(10),
                         borderSide: const BorderSide(width: 1),
                       ),
                     ),
@@ -152,74 +144,89 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 SizedBox(height: screenHeight * 0.015),
 
-                // Password Field
-                // Ubah bagian Password Field menjadi:
-SizedBox(
-  width: screenWidth * 0.7,
-  child: TextField(
-    controller: _passwordController,
-    obscureText: _obscureText,
-    decoration: InputDecoration(
-      hintText: 'Kata Sandi',
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(width: 1),
-      ),
-      suffixIcon: IconButton(
-        icon: Icon(
-          _obscureText ? Icons.visibility_off : Icons.visibility,
-        ),
-        onPressed: () {
-          setState(() {
-            _obscureText = !_obscureText;
-          });
-        },
-      ),
-    ),
-  ),
-),
+                // NIP Field
+                SizedBox(
+                  width:
+                      screenWidth *
+                      0.7, 
+                  child: TextField(
+                    controller: _nipController,
+                    decoration: InputDecoration(
+                      hintText: 'NIP',
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 16,
+                      ), 
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(width: 1),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: screenHeight * 0.015),
+
+                SizedBox(
+                  width: screenWidth * 0.7,
+                  child: TextField(
+                    controller: _passwordController,
+                    obscureText: _obscureText,
+                    decoration: InputDecoration(
+                      hintText: 'Kata Sandi',
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 16,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(width: 1),
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureText
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureText = !_obscureText;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ),
                 SizedBox(height: screenHeight * 0.01),
-
-
-          // Belum punya password
-TextButton(
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => RequestUserScreen()),
-    );
-  },
-  child: const Text(
-    'Belum punya password?',
-    style: TextStyle(
-      color: Color(0xFF4A628A),
-      fontSize: 14,
-      fontWeight: FontWeight.w500,
-    ),
-  ),
-),      
-SizedBox(height: screenHeight * 0.015),
-
 
                 // Masuk Button
                 SizedBox(
-                  width: screenWidth * 0.3, // Lebar dikurangi menjadi 60% dari lebar layar
-                  height: 45, // Tinggi tombol dikurangi
+                  width:
+                      screenWidth *
+                      0.3, 
+                  height: 45, 
                   child: ElevatedButton(
                     onPressed: _login,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF4A628A),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8), // Lebih kecil agar tombol tidak terlalu melengkung
+                        borderRadius: BorderRadius.circular(
+                          8,
+                        ), 
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 12), // Kurangi padding dalam
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                      ), 
                     ),
                     child: const Text(
                       'Masuk',
-                      style: TextStyle(fontSize: 16, color: Colors.white), // Ukuran teks dikurangi
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                      ), 
                     ),
                   ),
                 ),

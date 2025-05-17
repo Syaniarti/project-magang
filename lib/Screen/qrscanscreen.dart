@@ -104,7 +104,7 @@ class _Qrscanscreen extends State<Qrscanscreen> {
       ],
     );
   } else if (_selectedIndex == 0) {
-    return const HomePage(); // <- tampilkan halaman beranda
+    return const Homescreen(); // <- tampilkan halaman beranda
   } else if (_selectedIndex == 2) {
     return const ProfilScreen(); // <- tampilkan halaman profil
   }
