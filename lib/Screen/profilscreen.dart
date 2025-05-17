@@ -4,8 +4,9 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'homescreen.dart';
 import 'qrscanscreen.dart';
-import 'editprofilescreen.dart';
 import 'loginscreen.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 class ProfilScreen extends StatefulWidget {
   const ProfilScreen({super.key});
@@ -16,13 +17,14 @@ class ProfilScreen extends StatefulWidget {
 
 class _ProfilScreenState extends State<ProfilScreen> {
   int _selectedIndex = 2;
-
-  // Informasi user
+  File? _imageFile;
+  final picker = ImagePicker();
+  
   String nama = '';
   String nip = '';
   String jabatan = '';
   String email = '';
-  String noTelp = '';
+  String notelp = '';
   String role = '';
 
   @override
@@ -35,32 +37,100 @@ class _ProfilScreenState extends State<ProfilScreen> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
 
-    if (token == null) return;
+    if (token == null || token.isEmpty) {
+        print("Token tidak ditemukan");
+        return;
+      }
 
     final response = await http.get(
       Uri.parse(
         'http://127.0.0.1:8000/api/profile',
-      ), // GANTI IP SESUAI JARINGAN
+      ), 
       headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
     );
 
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
-      print('JSON Data: $jsonData');
+      print(jsonEncode(jsonData));
 
       final user = jsonData['user'];
-      print('User: $user');
 
-      setState(() {
-        nama = user['nama'] ?? '';
-        nip = user['nip'] ?? '';
-        jabatan = user['jabatan'] ?? '';
-        email = user['email'] ?? '';
-        noTelp = user['no_telp'] ?? '';
-        role = user['role'] ?? '';
-      });
+      if (user != null) {
+          setState(() {
+            nama = user['nama'] ?? '';
+            nip = user['nip'] ?? '';
+            jabatan = user['jabatan'] ?? '';
+            email = user['email'] ?? '';
+            notelp = user['no_telp'] ?? '';
+            role = user['role'] ?? '';
+          });
+
+      await prefs.setString('nama', nama);
+      await prefs.setString('nip', nip);
+      await prefs.setString('jabatan', jabatan);
+      await prefs.setString('email', email);
+      await prefs.setString('no_telp', notelp);
+      await prefs.setString('role', role);
     } else {
-      print('Gagal mengambil data profil: ${response.body}');
+      print("User null, load dari SharedPreferences");
+      loadFromPrefs(prefs);
+    }
+  } else {
+    print("Gagal ambil dari API, load dari SharedPreferences");
+    loadFromPrefs(prefs);
+  }
+}
+void loadFromPrefs(SharedPreferences prefs) {
+  setState(() {
+    nama = prefs.getString('nama') ?? '';
+    nip = prefs.getString('nip') ?? '';
+    jabatan = prefs.getString('jabatan') ?? '';
+    email = prefs.getString('email') ?? '';
+    notelp = prefs.getString('no_telp') ?? '';
+    role = prefs.getString('role') ?? '';
+  });
+}
+
+  Future<void> updatePhoneNumber(String newPhone) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null || token.isEmpty) {
+      print("Token tidak ditemukan");
+      return;
+    }
+
+    try {
+      final response = await http.put(
+        Uri.parse('http://127.0.0.1:8000/api/updatephone'), 
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'no_telp': newPhone}),
+      );
+
+      if (response.statusCode == 200) {
+        print("Nomor telepon berhasil diperbarui.");
+        setState(() {
+          notelp = newPhone;
+        });
+      } else {
+        print("Gagal update nomor telepon: ${response.statusCode} | ${response.body}");
+      }
+    } catch (e) {
+      print("Terjadi kesalahan saat update no telp: $e");
+    }
+  }
+
+ Future<void> _pickImage() async {
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
     }
   }
 
@@ -72,8 +142,8 @@ class _ProfilScreenState extends State<ProfilScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            title: const Text("Konfirmasi Logout"),
-            content: const Text("Apakah Anda yakin ingin logout?"),
+           title: const Text("Konfirmasi Logout"),
+           content: const Text("Apakah Anda yakin ingin logout?"),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -88,30 +158,17 @@ class _ProfilScreenState extends State<ProfilScreen> {
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const LoginScreen(),
-                    ),
+                      builder: (context) => const LoginScreen()),
                     (route) => false,
                   );
                 },
                 child: const Text("Logout"),
-              ),
-            ],
-          ),
-    );
-  }
-
-  Widget _buildInfoTile(String label, String value, IconData icon) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: ListTile(
-        leading: Icon(icon, color: Colors.blueAccent),
-        title: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(value.isNotEmpty ? value : '-'),
+             ),
+        ],
       ),
     );
   }
+
 
   Widget _navItem(String label, IconData icon, int index) {
     bool isActive = _selectedIndex == index;
@@ -146,6 +203,39 @@ class _ProfilScreenState extends State<ProfilScreen> {
     );
   }
 
+ void showEditPhoneDialog() {
+    final TextEditingController phoneController = TextEditingController(text: notelp);
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: const Text("Ubah Nomor Telepon"),
+          content: TextField(
+            controller: phoneController,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(labelText: "Nomor Telepon", border: OutlineInputBorder()),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Batal"),
+            ),
+            ElevatedButton(
+            onPressed: () {
+              final newPhone = phoneController.text;
+              if (newPhone.isNotEmpty && newPhone != notelp) {
+                updatePhoneNumber(newPhone);
+              }
+              Navigator.of(context).pop();
+            },
+            child: const Text("Simpan"),
+          ),
+          ],
+        );
+      },
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -165,51 +255,46 @@ class _ProfilScreenState extends State<ProfilScreen> {
                 ),
               ),
               Positioned(
-                top: 100,
-                left: 24,
-                right: 24,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 8,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
+              top: 20, // Ubah dari 100 ke 60 atau lebih kecil
+              left: 60,
+              right: 60,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+    child: Column(
                     children: [
                       Row(
                         children: [
                           Stack(
+                            alignment: Alignment.bottomRight,
                             children: [
-                              const CircleAvatar(
+                              CircleAvatar(
                                 radius: 35,
-                                backgroundImage: AssetImage(
-                                  'assets/perempuan.jpeg',
-                                ),
+                                backgroundImage: _imageFile != null
+                                    ? FileImage(_imageFile!)
+                                    : const AssetImage('assets/profile.png') as ImageProvider,
                               ),
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Color(0xFF5A8ECF),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
+                              GestureDetector(
+                                onTap: _pickImage,
+                                child: const CircleAvatar(
+                                  radius: 10,
+                                  backgroundColor: Colors.white,
+                                  child: Icon(Icons.camera_alt, size: 16),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(width: 16),
+           const SizedBox(width: 16),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,16 +306,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                Text(jabatan),
-                                Text(role),
-                                const SizedBox(height: 4),
-                                Text(
-                                  nip,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
+                   Text(jabatan),
                               ],
                             ),
                           ),
@@ -240,9 +316,10 @@ class _ProfilScreenState extends State<ProfilScreen> {
                   ),
                 ),
               ),
-            ],
+            ]
           ),
-          const SizedBox(height: 90),
+      
+          const SizedBox(height: 20),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -253,6 +330,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
                 ),
                 const SizedBox(height: 16),
                 Card(
+                  color: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -263,6 +341,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
                 ),
 
                 Card(
+                  color: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -273,7 +352,9 @@ class _ProfilScreenState extends State<ProfilScreen> {
                 ),
 
                 Card(
-                  shape: RoundedRectangleBorder(
+                  color: Colors.white,
+                  shape: 
+                  RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: ListTile(
@@ -283,6 +364,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
                 ),
 
                 Card(
+                  color: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -293,6 +375,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
                 ),
 
                 Card(
+                  color: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -303,24 +386,25 @@ class _ProfilScreenState extends State<ProfilScreen> {
                 ),
 
                 Card(
+                  color: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: ListTile(
                     leading: const Icon(Icons.phone),
-                    title: Text(noTelp.isNotEmpty ? noTelp : "-"),
+                    title: Text(notelp.isNotEmpty ? notelp : "-"),
                     trailing: TextButton(
                       onPressed: () {
                         showEditPhoneDialog();
                       },
-                      child: const Text("Ubah", style: TextStyle(color: Colors.blueAccent)),
+                      child: const Text("Ubah", style: TextStyle(color: Color(0xFF5A8ECF))),
                       ),
                     ),
                   ),
                 
-                const SizedBox(height: 16),
-
+                 const SizedBox(height: 16),
                 Card(
+                  color: Colors.white,
                   child: ListTile(
                     leading: const Icon(Icons.logout, color: Colors.red),
                     title: const Text(
@@ -373,49 +457,11 @@ class _ProfilScreenState extends State<ProfilScreen> {
                   border: Border.all(color: Colors.black, width: 3),
                 ),
                 child: const Icon(Icons.qr_code, size: 34, color: Colors.white),
-              ),
+               ),
             ),
           ),
         ],
       ),
     );
   }
-  void showEditPhoneDialog() {
-  final TextEditingController phoneController = TextEditingController(text: noTelp);
-
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text("Ubah Nomor Telepon"),
-        content: TextField(
-          controller: phoneController,
-          keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(
-            labelText: "Nomor Telepon",
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Batal
-            },
-            child: const Text("Batal"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                noTelp = phoneController.text; // Simpan perubahan
-              });
-              Navigator.of(context).pop(); // Tutup dialog
-            },
-            child: const Text("Simpan"),
-          ),
-        ],
-      );
-    },
-  );
-}
 }

@@ -1,11 +1,11 @@
-import 'package:asetcare/Screen/pinjamasetscreen.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:asetcare/Screen/pinjamasetscreen.dart';
 
 class AsetTersediaScreen extends StatefulWidget {
-  final Map<String, dynamic>? newAsset;
-  const AsetTersediaScreen({super.key, this.newAsset});
+  final Map<String, dynamic>? Aset;
+  const AsetTersediaScreen({super.key, this.Aset});
 
   @override
   State<AsetTersediaScreen> createState() => _AsetTersediaScreenState();
@@ -13,97 +13,75 @@ class AsetTersediaScreen extends StatefulWidget {
 
 class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
   List<dynamic> daftarAset = [];
-  String searchText = '';
   bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    fetchAset(); // ambil semua aset saat pertama buka screen
+    fetchAset();
 
-    if (widget.newAsset != null) {
-      // Tambahkan aset baru ke daftar
-      setState(() {
-        daftarAset.insert(0, widget.newAsset!); // Masukkan ke urutan atas
-      });
+    if (widget.Aset != null) {
+      setState(() {});
     }
   }
 
-  Future<void> fetchAset({String? query}) async {
+  Future<void> fetchAset() async {
     setState(() {
       isLoading = true;
     });
 
-    final url =
-        query == null || query.isEmpty
-            ? 'https://dummyjson.com/products'
-            : 'https://dummyjson.com/products/search?q=$query';
+    try {
+      var request = http.Request(
+        'GET',
+        Uri.parse('http://127.0.0.1:8000/api/databarangtersedia'),
+      );
+      http.StreamedResponse response = await request.send();
 
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        String responseData = await response.stream.bytesToString();
+        final List<dynamic> data = json.decode(responseData);
+        setState(() {
+          daftarAset = data;
+          isLoading = false;
+        });
+      } else {
+        print(response.reasonPhrase);
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Terjadi kesalahan: $e");
       setState(() {
-        daftarAset = data['products'];
-        isLoading = false;
-      });
-    } else {
-      setState(() {
-        daftarAset = [];
         isLoading = false;
       });
     }
-  }
-
-  void _onSearchChanged(String value) {
-    setState(() {
-      searchText = value;
-    });
-    fetchAset(query: value);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDFDFD),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
-            // Header bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
                 children: [
-                  // tombol kembali
                   IconButton(
                     icon: const Icon(Icons.arrow_back),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  // kolom pencarian
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.2),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        decoration: const InputDecoration(
-                          hintText: 'Search',
-                          border: InputBorder.none,
-                          icon: Icon(Icons.search),
-                        ),
-                        onChanged: _onSearchChanged,
+                  const Expanded(
+                    child: Text(
+                      "📦 Daftar Aset Tersedia",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.admin_panel_settings_rounded),
                     onPressed: () {
@@ -113,137 +91,94 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
                 ],
               ),
             ),
-
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '📦 Daftar Aset Tersedia',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-
-            // List of assets
             Expanded(
               child:
                   isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : daftarAset.isEmpty
                       ? const Center(
-                        child: Text(
-                          'Tidak ada data aset yang tersedia.',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                        child: Text('Tidak ada data aset yang tersedia.'),
                       )
                       : ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         itemCount: daftarAset.length,
                         itemBuilder: (context, index) {
                           final aset = daftarAset[index];
-                          return Card(
-                            color: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            margin: const EdgeInsets.only(bottom: 12),
-                            elevation: 2,
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Row(
-                                children: [
-                                  // Asset image
-                                  Container(
-                                    width: 50,
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade300,
+                          return InkWell(
+                            borderRadius: BorderRadius.circular(
+                              12,
+                            ), // supaya efek klik sesuai border card
+                            onTap: () {
+                              _showAssetDetailDialog(context, aset);
+                            },
+                            child: Card(
+                              color: Colors.white,
+                              elevation: 5,
+                              shadowColor: Colors.black26,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              margin: const EdgeInsets.only(bottom: 12),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  children: [
+                                    // Foto aset
+                                    ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
-                                      image:
-                                          aset['thumbnail'] != null
-                                              ? DecorationImage(
-                                                image: NetworkImage(
-                                                  aset['thumbnail'],
+                                      child: Container(
+                                        width: 50,
+                                        height: 50,
+                                        color: Colors.grey.shade300,
+                                        child:
+                                            aset['dokumentasi_barang'] != null
+                                                ? Image.network(
+                                                  aset['dokumentasi_barang'],
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder:
+                                                      (
+                                                        context,
+                                                        error,
+                                                        stackTrace,
+                                                      ) => const Icon(
+                                                        Icons.broken_image,
+                                                        size: 30,
+                                                      ),
+                                                )
+                                                : const Icon(
+                                                  Icons.image,
+                                                  size: 30,
                                                 ),
-                                                fit: BoxFit.cover,
-                                              )
-                                              : null,
+                                      ),
                                     ),
-                                    child:
-                                        aset['thumbnail'] == null
-                                            ? const Icon(Icons.image, size: 30)
-                                            : null,
-                                  ),
-                                  const SizedBox(width: 12),
 
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            const SizedBox(
-                                              width: 110, // panjang label tetap
-                                              child: Text(
-                                                "Nama Aset",
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "Nama Aset: ${aset['Nama_Aset'] ?? '-'}",
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
                                             ),
-                                            Text(": ${aset['title']}"),
-                                          ],
-                                        ),
-                                        Row(
-                                          children: [
-                                            const SizedBox(
-                                              width: 110,
-                                              child: Text(
-                                                "Serial Number",
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ),
-                                            Text(": ${aset['id']}"),
-                                          ],
-                                        ),
-                                        Row(
-                                          children: [
-                                            const SizedBox(
-                                              width: 110,
-                                              child: Text(
-                                                "Kondisi",
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ),
-                                            Text(": \$${aset['price']}"),
-                                          ],
-                                        ),
-                                      ],
+                                          ),
+                                          Text(
+                                            "Serial Number: ${aset['Serial_Number'] ?? '-'}",
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-
-                                  // aksi pinjam
-                                  IconButton(
-                                    onPressed:
-                                        () => _showAssetDetailDialog(
-                                          context,
-                                          aset,
-                                        ),
-                                    icon: const Icon(
-                                      Icons.shopping_bag,
-                                      color: Colors.amber,
+                                    IconButton(
+                                      onPressed: () {},
+                                      icon: const Icon(
+                                        Icons.shopping_bag,
+                                        color: Colors.amber,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           );
@@ -254,67 +189,138 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
         ),
       ),
     );
-    
   }
+
   void _showAssetDetailDialog(BuildContext context, dynamic aset) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(aset['title'] ?? 'Detail Aset'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (aset['thumbnail'] != null)
-            Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              height: 150,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                image: DecorationImage(
-                  image: NetworkImage(aset['thumbnail']),
-                  fit: BoxFit.cover,
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            elevation: 8, // bayangan dialog
+            titleTextStyle: const TextStyle(
+              color: Colors.black,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+            title: Text('Detail Aset'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildCardInfo("Nama_Aset", aset['Nama_Aset']),
+                  _buildCardInfo("Serial Number", aset['Serial_Number']),
+                  _buildCardInfo("Kondisi", aset['Kondisi']),
+                  _buildCardInfo("Lokasi Terkini", aset['Lokasi_Terkini']),
+                  _buildCardInfo("Tanggal Upload", aset['Tanggal_Upload']),
+                  if (aset['dokumentasi_barang'] != null) ...[
+                    const SizedBox(height: 12),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "Dokumentasi Aset",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Card(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 4,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          aset['dokumentasi_barang'],
+                          height: 200,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (context, error, stackTrace) => const Padding(
+                                padding: EdgeInsets.all(16),
+                                child: Icon(
+                                  Icons.broken_image,
+                                  size: 60,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Tutup'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 43, 97, 133),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  // Navigasi ke halaman PinjamAsetScreen dan kirim data aset
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PinjamAsetScreen(Aset: aset),
+                    ),
+                  );
+                },
+                child: const Text(
+                  'Ajukan Pinjam',
+                  style: TextStyle(color: Colors.black),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Widget _buildCardInfo(String title, String? value) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
             ),
-          Text("Deskripsi: ${aset['description'] ?? '-'}"),
-          const SizedBox(height: 8),
-          Text("Harga: \$${aset['price']}"),
-          const SizedBox(height: 8),
-          Text("Rating: ${aset['rating']}"),
-          const SizedBox(height: 8),
-          Text("Stok: ${aset['stock']} unit"),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Tutup'),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.amber,
-          ),
-          onPressed: () {
-            Navigator.pop(context);
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => PinjamAsetScreen(),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 5,
+              child: Text(
+                value ?? "-",
+                style: const TextStyle(color: Colors.black54),
               ),
-            );
-          },
-          child: const Text(
-            'Ajukan Pinjam',
-            style: TextStyle(color: Colors.black),
-          ),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
-}
-
-
+      ),
+    );
+  }
 
   void _showAdminDialog(BuildContext context) {
     showDialog(
@@ -330,13 +336,10 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    "Anda tidak memiliki izin untuk\nmengakses halaman ini.\n\nSilakan hubungi administrator\njika membutuhkan akses\nsebagai Admin Gudang.",
+                    "Anda tidak memiliki izin untuk mengakses halaman ini.\n"
+                    "Silakan hubungi administrator jika membutuhkan akses sebagai Admin Gudang.",
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 20),
                   TextButton(
@@ -365,6 +368,5 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
             ),
           ),
     );
-    
   }
 }

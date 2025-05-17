@@ -161,7 +161,7 @@ class _GenerateQrScreenState extends State<GenerateQrScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => AsetTersediaScreen(newAsset: responseData),
+            builder: (context) => AsetTersediaScreen(Aset: responseData),
           ),
         );
       } else {

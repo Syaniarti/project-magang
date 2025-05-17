@@ -243,7 +243,7 @@ class HomePage extends StatelessWidget {
                       child: ClipRRect(
                         child: Image.asset(
                           'assets/pegawai.png',
-                          width: 180,
+                          width: 10,
                           fit: BoxFit.cover,
                         ),
                       ),

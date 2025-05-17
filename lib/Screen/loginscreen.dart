@@ -36,14 +36,19 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        print('Login berhasil: $data');
+  final data = jsonDecode(response.body);
+  final user = data['user'];
+  final token = data['token'];
 
-        // Simpan data ke SharedPreferences
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-  
-        await prefs.setString('nama', data['user']['nama']); 
-        await prefs.setString('nip', data['user']['nip']);
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.setString('token', token);
+  await prefs.setString('nama', user['nama'] ?? '');
+  await prefs.setString('nip', user['nip'] ?? '');
+  await prefs.setString('jabatan', user['jabatan'] ?? '');
+  await prefs.setString('email', user['email'] ?? '');
+  await prefs.setString('no_telp', user['no_telp'] ?? '');
+  await prefs.setString('role', user['role'] ?? '');
+
 
         // Tampilkan pesan sukses dan navigasi
         ScaffoldMessenger.of(context).showSnackBar(
