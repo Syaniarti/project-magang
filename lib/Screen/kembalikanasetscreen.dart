@@ -1,12 +1,20 @@
+import 'dart:convert';
 import 'dart:io';
-import 'package:asetcare/Screen/aset_tersedia_screen.dart';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as path;
+import 'package:http_parser/http_parser.dart';
+
+import 'aset_tersedia_screen.dart';
+import 'aset_dipinjam_screen.dart';
 
 class KembalikanAsetScreen extends StatefulWidget {
-  const KembalikanAsetScreen({super.key});
+  final Map<String, dynamic>? Aset;
+  const KembalikanAsetScreen({super.key, this.Aset});
 
   @override
   State<KembalikanAsetScreen> createState() => _KembalikanAsetScreenState();
@@ -14,40 +22,132 @@ class KembalikanAsetScreen extends StatefulWidget {
 
 class _KembalikanAsetScreenState extends State<KembalikanAsetScreen> {
   final _formKey = GlobalKey<FormState>();
-  String? selectedLokasi;
-  String? selectedKondisi;
-  DateTime selectedDate = DateTime.now();
 
   File? _selectedImage;
   Uint8List? _webImage;
   final ImagePicker _picker = ImagePicker();
 
+  final _namaAsetController = TextEditingController();
+  final _serialNumberController = TextEditingController();
   final _namaController = TextEditingController();
   final _teleponController = TextEditingController();
+  final lokasiPengembalianController = TextEditingController();
 
-  List<String> kondisiList = ['Baik', 'Rusak Ringan', 'Rusak Berat'];
+  String? selectedKondisi;
+
+  @override
+  void initState() {
+    super.initState();
+    _ambilDataProfil();
+    if (widget.Aset != null) {
+      _namaAsetController.text = widget.Aset!['Nama_Aset'] ?? '';
+      _serialNumberController.text = widget.Aset!['Serial_Number'] ?? '';
+    }
+  }
+
+  Future<void> _ambilDataProfil() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+
+    _namaController.text = prefs.getString('nama') ?? '';
+    _teleponController.text = prefs.getString('telepon') ?? '';
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       if (kIsWeb) {
         final bytes = await pickedFile.readAsBytes();
-        setState(() {
-          _webImage = bytes;
-        });
+        setState(() => _webImage = bytes);
       } else {
-        setState(() {
-          _selectedImage = File(pickedFile.path);
-        });
+        setState(() => _selectedImage = File(pickedFile.path));
       }
     }
   }
 
-  @override
-  void dispose() {
-    _namaController.dispose();
-    _teleponController.dispose();
-    super.dispose();
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedImage == null && _webImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Dokumentasi aset wajib diupload")),
+      );
+      return;
+    }
+
+    if (widget.Aset == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Data aset tidak tersedia")),
+      );
+      return;
+    }
+
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('http://127.0.0.1:8000/api/asetdikembalikan'),
+      );
+
+      request.fields['nama'] = _namaAsetController.text;
+      request.fields['serial_number'] = _serialNumberController.text;
+      request.fields['nama_peminjam'] = _namaController.text;
+      request.fields['telepon'] = _teleponController.text;
+      request.fields['kondisi_aset'] = selectedKondisi!;
+      request.fields['lokasi_terkini'] = widget.Aset!['Lokasi_Tujuan'] ?? '-';
+      request.fields['lokasi_pengembalian'] =
+          lokasiPengembalianController.text;
+      request.fields['tanggal_pengembalian'] =
+          DateTime.now().toIso8601String();
+
+      if (!kIsWeb) {
+        var imageFile = await http.MultipartFile.fromPath(
+          'dokumentasi_barang',
+          _selectedImage!.path,
+          contentType: MediaType(
+            'image',
+            path.extension(_selectedImage!.path).replaceFirst('.', ''),
+          ),
+        );
+        request.files.add(imageFile);
+      } else {
+        var image = http.MultipartFile.fromBytes(
+          'dokumentasi_barang',
+          _webImage!,
+          filename: 'upload.jpg',
+          contentType: MediaType('image', 'jpg'),
+        );
+        request.files.add(image);
+      }
+
+      var response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+      final decoded = jsonDecode(responseBody);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (decoded['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Data pengembalian disimpan!")),
+          );
+          Future.delayed(const Duration(seconds: 1), () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const AsetDipinjamScreen()),
+            );
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Gagal: ${decoded['message']}")),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Gagal menyimpan. Code: ${response.statusCode}")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
   }
 
   Widget buildLabel(String text) {
@@ -58,14 +158,11 @@ class _KembalikanAsetScreenState extends State<KembalikanAsetScreen> {
           children: [
             TextSpan(
               text: text,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const TextSpan(
               text: ' *',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+              style: TextStyle(color: Colors.red),
             ),
           ],
         ),
@@ -73,33 +170,20 @@ class _KembalikanAsetScreenState extends State<KembalikanAsetScreen> {
     );
   }
 
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      if (_selectedImage == null && _webImage == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Dokumentasi aset wajib diupload")),
-        );
-        return;
-      }
-
-      // Simulasi pengembalian disetujui
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Pengembalian berhasil disetujui")),
-      );
-
-      Future.delayed(const Duration(seconds: 1), () {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const AsetTersediaScreen(),
-          ),
-        );
-      });
-    }
+  @override
+  void dispose() {
+    _namaController.dispose();
+    _teleponController.dispose();
+    _namaAsetController.dispose();
+    _serialNumberController.dispose();
+    lokasiPengembalianController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final lokasiTerkini = widget.Aset?['Lokasi_Tujuan'] ?? '-';
+
     return Scaffold(
       backgroundColor: const Color(0xFF3C5A99),
       body: Center(
@@ -125,21 +209,41 @@ class _KembalikanAsetScreenState extends State<KembalikanAsetScreen> {
                       const SizedBox(width: 8),
                       const Text(
                         'Formulir Pengembalian',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  Image.asset("assets/truck1.png", width: 80, height: 80),
+                  const SizedBox(height: 20),
+                  Image.asset("assets/truck1.png", width: 80),
                   const SizedBox(height: 20),
 
-                  buildLabel('Nama Lengkap'),
+                  buildLabel('Nama Aset'),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _namaAsetController,
+                    readOnly: true,
+                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: 12),
+
+                  buildLabel('Serial Number'),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _serialNumberController,
+                    readOnly: true,
+                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: 12),
+
+                  buildLabel('Nama Peminjam'),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _namaController,
+                    readOnly: true,
                     decoration: const InputDecoration(border: OutlineInputBorder()),
-                    validator: (value) =>
-                        value == null || value.trim().isEmpty ? 'Nama Lengkap wajib diisi' : null,
                   ),
                   const SizedBox(height: 12),
 
@@ -148,107 +252,85 @@ class _KembalikanAsetScreenState extends State<KembalikanAsetScreen> {
                   TextFormField(
                     controller: _teleponController,
                     keyboardType: TextInputType.phone,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: const InputDecoration(border: OutlineInputBorder()),
-                    validator: (value) =>
-                        value == null || value.trim().isEmpty ? 'Nomor Telepon wajib diisi' : null,
                   ),
                   const SizedBox(height: 12),
 
-                  buildLabel('Lokasi Pengembalian'),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    value: selectedLokasi,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    ),
-                    hint: const Text('Pilih lokasi pengembalian'),
-                    items: ['ULTG Banda Aceh', 'ULTG Meulaboh', 'ULTG Langsa']
-                        .map((value) => DropdownMenuItem(value: value, child: Text(value)))
-                        .toList(),
-                    onChanged: (value) => setState(() => selectedLokasi = value),
-                    validator: (value) => value == null ? 'Lokasi wajib dipilih' : null,
-                    dropdownColor: Colors.white,
-                  ),
-                  const SizedBox(height: 12),
-
-                  buildLabel('Kondisi Aset'),
+                  buildLabel('Kondisi Aset Saat Ini'),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
                     value: selectedKondisi,
                     isExpanded: true,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      filled: true,
+                      fillColor: Colors.white,
                     ),
-                    hint: const Text('Pilih kondisi aset'),
-                    items: kondisiList
-                        .map((value) => DropdownMenuItem(value: value, child: Text(value)))
+                    hint: const Text('Pilih kondisi'),
+                    items: [
+                      'Baru',
+                      'Baik',
+                      'Rusak Ringan',
+                      'Rusak Berat',
+                      'Tidak Layak Pakai',
+                    ]
+                        .map((value) => DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            ))
                         .toList(),
-                    onChanged: (value) => setState(() => selectedKondisi = value),
-                    validator: (value) => value == null ? 'Kondisi aset wajib dipilih' : null,
-                    dropdownColor: Colors.white,
+                    onChanged: (value) {
+                      setState(() => selectedKondisi = value);
+                    },
+                    validator: (value) =>
+                        value == null ? 'Kondisi wajib dipilih' : null,
                   ),
                   const SizedBox(height: 12),
 
-                  buildLabel('Tanggal Pengembalian'),
+                  buildLabel('Lokasi Terkini'),
                   const SizedBox(height: 6),
                   TextFormField(
+                    initialValue: lokasiTerkini,
                     readOnly: true,
-                    enabled: false,
                     decoration: const InputDecoration(border: OutlineInputBorder()),
-                    controller: TextEditingController(
-                      text:
-                          '${selectedDate.day.toString().padLeft(2, '0')}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.year}',
-                    ),
                   ),
                   const SizedBox(height: 12),
 
-                  buildLabel('Dokumentasi Aset'),
+                  buildLabel('Lokasi Pengembalian'),
                   const SizedBox(height: 6),
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: Container(
-                      height: 150,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: _webImage != null || _selectedImage != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: kIsWeb
-                                  ? Image.memory(_webImage!, fit: BoxFit.contain)
-                                  : Image.file(_selectedImage!, fit: BoxFit.contain),
-                            )
-                          : Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(Icons.cloud_upload, size: 40, color: Colors.grey),
-                                SizedBox(height: 8),
-                                Text('Klik untuk upload foto', style: TextStyle(color: Colors.grey)),
-                              ],
-                            ),
-                    ),
+                  TextFormField(
+                    controller: lokasiPengembalianController,
+                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Lokasi wajib diisi' : null,
                   ),
+                  const SizedBox(height: 12),
+
+                  buildLabel('Upload Dokumentasi Aset'),
+                  const SizedBox(height: 6),
+                  ElevatedButton.icon(
+                    onPressed: _pickImage,
+                    icon: const Icon(Icons.upload_file),
+                    label: const Text("Pilih Gambar"),
+                  ),
+                  const SizedBox(height: 10),
+                  if (_selectedImage != null || _webImage != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: _selectedImage != null
+                          ? Image.file(_selectedImage!, width: 200)
+                          : Image.memory(_webImage!, width: 200),
+                    ),
                   const SizedBox(height: 20),
 
                   ElevatedButton(
                     onPressed: _submitForm,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF82B1FF),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      minimumSize: const Size.fromHeight(45),
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 40, vertical: 14),
                     ),
-                    child: const Text(
-                      'Kembalikan Aset',
-                      style: TextStyle(fontSize: 16, color: Colors.white),
-                    ),
+                    child: const Text("Kembalikan Aset"),
                   ),
                 ],
               ),

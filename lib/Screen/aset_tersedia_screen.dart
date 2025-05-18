@@ -127,23 +127,15 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
                                       child: Container(
-                                        width: 50,
-                                        height: 50,
+                                        width: 100,
+                                        height: 100,
                                         color: Colors.grey.shade300,
                                         child:
                                             aset['dokumentasi_barang'] != null
                                                 ? Image.network(
-                                                  aset['dokumentasi_barang'],
+                                                  'http://localhost:8000/proxy-image?path=${aset!['dokumentasi_barang']}',
+
                                                   fit: BoxFit.cover,
-                                                  errorBuilder:
-                                                      (
-                                                        context,
-                                                        error,
-                                                        stackTrace,
-                                                      ) => const Icon(
-                                                        Icons.broken_image,
-                                                        size: 30,
-                                                      ),
                                                 )
                                                 : const Icon(
                                                   Icons.image,
@@ -217,7 +209,7 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
                   _buildCardInfo("Lokasi Terkini", aset['Lokasi_Terkini']),
                   _buildCardInfo("Tanggal Upload", aset['Tanggal_Upload']),
                   if (aset['dokumentasi_barang'] != null) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 2),
                     const Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -231,7 +223,7 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
                     ),
                     const SizedBox(height: 6),
                     Card(
-                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      margin: const EdgeInsets.symmetric(vertical: 4),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -239,19 +231,10 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: Image.network(
-                          aset['dokumentasi_barang'],
-                          height: 200,
-                          width: double.infinity,
+                          'http://localhost:8000/proxy-image?path=${aset!['dokumentasi_barang']}',
+                          width: 100,
+                          height: 100,
                           fit: BoxFit.cover,
-                          errorBuilder:
-                              (context, error, stackTrace) => const Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Icon(
-                                  Icons.broken_image,
-                                  size: 60,
-                                  color: Colors.grey,
-                                ),
-                              ),
                         ),
                       ),
                     ),

@@ -149,11 +149,19 @@ class _HasilQrScreenState extends State<HasilQrScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 10),
+                                // Image.network(
+                                //   'http://localhost:8000/storage/${asetData!['dokumentasi_barang']}',
+                                //   height: 200,
+                                //   fit: BoxFit.cover,
+                                // ),
                                 Image.network(
-                                  asetData!['dokumentasi_barang'],
-                                  height: 200,
-                                  fit: BoxFit.cover,
-                                ),
+                                'http://localhost:8000/proxy-image?path=${asetData!['dokumentasi_barang']}',
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Text('😢 Gambar gagal dimuat');
+                                },
+                              ),
+
+
                               ] else
                                 const Text('Tidak ada dokumentasi'),
                             ],
@@ -175,7 +183,12 @@ class _HasilQrScreenState extends State<HasilQrScreen> {
                                 );
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Color.fromARGB(255, 27, 48, 83),
+                                backgroundColor: Color.fromARGB(
+                                  255,
+                                  27,
+                                  48,
+                                  83,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
@@ -206,7 +219,12 @@ class _HasilQrScreenState extends State<HasilQrScreen> {
                                 );
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Color.fromARGB(255, 27, 48, 83),
+                                backgroundColor: Color.fromARGB(
+                                  255,
+                                  27,
+                                  48,
+                                  83,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
