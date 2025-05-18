@@ -118,7 +118,7 @@ class _AsetDipinjamScreenState extends State<AsetDipinjamScreen> {
                                           image: aset['dokumentasi_barang'] != null
                                               ? DecorationImage(
                                                   image: NetworkImage(
-                                                    aset['dokumentasi_barang'],
+                                                    'http://localhost:8000/proxy-image?path=${aset!['dokumentasi_barang']}',
                                                   ),
                                                   fit: BoxFit.cover,
                                                   
@@ -219,9 +219,9 @@ class _AsetDipinjamScreenState extends State<AsetDipinjamScreen> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
-                      aset['dokumentasi_barang'],
-                      height: 200,
-                      width: double.infinity,
+                     'http://localhost:8000/proxy-image?path=${aset!['dokumentasi_barang']}',
+                          width: 100,
+                          height: 100,
                       fit: BoxFit.cover,
                       errorBuilder: (c, e, s) => const Padding(
                         padding: EdgeInsets.all(16),
