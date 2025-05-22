@@ -9,7 +9,7 @@ import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../api/add_product.dart';
+
 
 
 void main() {

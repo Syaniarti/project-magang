@@ -1,3 +1,4 @@
+import 'package:asetcare/Screen/homescreen.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -14,15 +15,13 @@ class AsetTersediaScreen extends StatefulWidget {
 class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
   List<dynamic> daftarAset = [];
   bool isLoading = false;
+  TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     fetchAset();
-
-    if (widget.Aset != null) {
-      setState(() {});
-    }
   }
 
   Future<void> fetchAset() async {
@@ -58,10 +57,20 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
     }
   }
 
+  List<dynamic> get filteredAset {
+    if (_searchQuery.isEmpty) return daftarAset;
+    return daftarAset.where((aset) {
+      final name = (aset['Nama_Aset'] ?? '').toString().toLowerCase();
+      final serial = (aset['Serial_Number'] ?? '').toString().toLowerCase();
+      return name.contains(_searchQuery.toLowerCase()) ||
+          serial.contains(_searchQuery.toLowerCase());
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF5F7FA),
       body: SafeArea(
         child: Column(
           children: [
@@ -71,49 +80,80 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => Homescreen()),
+                        (route) => false, // hapus semua route sebelumnya
+                      );
+                    },
                   ),
-                  const Expanded(
-                    child: Text(
-                      "📦 Daftar Aset Tersedia",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Container(
+                      height: 50,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: const InputDecoration(
+                          hintText: 'Search',
+                          border: InputBorder.none,
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _searchQuery = value;
+                          });
+                        },
                       ),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.admin_panel_settings_rounded),
+                    icon: const Icon(Icons.search),
                     onPressed: () {
-                      _showAdminDialog(context);
+                      setState(() {
+                        _searchQuery = _searchController.text;
+                      });
                     },
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 20),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "📦 Daftar Aset Tersedia",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
             Expanded(
               child:
                   isLoading
                       ? const Center(child: CircularProgressIndicator())
-                      : daftarAset.isEmpty
+                      : filteredAset.isEmpty
                       ? const Center(
                         child: Text('Tidak ada data aset yang tersedia.'),
                       )
                       : ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: daftarAset.length,
+                        itemCount: filteredAset.length,
                         itemBuilder: (context, index) {
-                          final aset = daftarAset[index];
+                          final aset = filteredAset[index];
                           return InkWell(
-                            borderRadius: BorderRadius.circular(
-                              12,
-                            ), // supaya efek klik sesuai border card
+                            borderRadius: BorderRadius.circular(12),
                             onTap: () {
                               _showAssetDetailDialog(context, aset);
                             },
                             child: Card(
                               color: Colors.white,
-                              elevation: 5,
+                              elevation: 6,
                               shadowColor: Colors.black26,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -123,18 +163,16 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
                                 padding: const EdgeInsets.all(12),
                                 child: Row(
                                   children: [
-                                    // Foto aset
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
                                       child: Container(
-                                        width: 100,
-                                        height: 100,
+                                        width: 50,
+                                        height: 50,
                                         color: Colors.grey.shade300,
                                         child:
                                             aset['dokumentasi_barang'] != null
                                                 ? Image.network(
                                                   'http://localhost:8000/proxy-image?path=${aset!['dokumentasi_barang']}',
-
                                                   fit: BoxFit.cover,
                                                 )
                                                 : const Icon(
@@ -143,21 +181,76 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
                                                 ),
                                       ),
                                     ),
-
                                     const SizedBox(width: 12),
                                     Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                      child: Table(
+                                        columnWidths: const {
+                                          0: IntrinsicColumnWidth(), // Kolom label
+                                          1: FixedColumnWidth(
+                                            8,
+                                          ), // Kolom titik dua
+                                          2: FlexColumnWidth(), // Kolom nilai isi
+                                        },
                                         children: [
-                                          Text(
-                                            "Nama Aset: ${aset['Nama_Aset'] ?? '-'}",
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                          TableRow(
+                                            children: [
+                                              const Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                  vertical: 4,
+                                                ),
+                                                child: Text(
+                                                  "Nama Aset",
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                              const Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                  vertical: 4,
+                                                ),
+                                                child: Text(":"),
+                                              ),
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 4,
+                                                    ),
+                                                child: Text(
+                                                  aset['Nama_Aset'] ?? '-',
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          Text(
-                                            "Serial Number: ${aset['Serial_Number'] ?? '-'}",
+                                          TableRow(
+                                            children: [
+                                              const Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                  vertical: 4,
+                                                ),
+                                                child: Text(
+                                                  "Serial Number",
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                              const Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                  vertical: 4,
+                                                ),
+                                                child: Text(":"),
+                                              ),
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 4,
+                                                    ),
+                                                child: Text(
+                                                  aset['Serial_Number'] ?? '-',
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
@@ -192,13 +285,13 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            elevation: 8, // bayangan dialog
+            elevation: 8,
             titleTextStyle: const TextStyle(
               color: Colors.black,
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
-            title: Text('Detail Aset'),
+            title: const Text('Detail Aset'),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -242,7 +335,6 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
                 ],
               ),
             ),
-
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -254,17 +346,16 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
                 ),
                 onPressed: () {
                   Navigator.pop(context);
-                  // Navigasi ke halaman PinjamAsetScreen dan kirim data aset
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => PinjamAsetScreen(Aset: aset),
+                      builder: (context) => PinjamAsetScreen(aset: aset),
                     ),
                   );
                 },
                 child: const Text(
-                  'Ajukan Pinjam',
-                  style: TextStyle(color: Colors.black),
+                  'Pinjam Aset',
+                  style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
                 ),
               ),
             ],
@@ -302,54 +393,6 @@ class _AsetTersediaScreenState extends State<AsetTersediaScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  void _showAdminDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    "Anda tidak memiliki izin untuk mengakses halaman ini.\n"
-                    "Silakan hubungi administrator jika membutuhkan akses sebagai Admin Gudang.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 20),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.blue[200],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 8,
-                      ),
-                    ),
-                    child: const Text(
-                      "Oke",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
     );
   }
 }

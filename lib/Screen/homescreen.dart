@@ -23,7 +23,6 @@ class _HomeScreenState extends State<Homescreen> {
   int _selectedIndex = 0;
   String _name = '';
   String _nip = '';
-  bool isAdminApproved = false;
 
   @override
   void initState() {
@@ -54,6 +53,7 @@ class _HomeScreenState extends State<Homescreen> {
     ];
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
       extendBody: true,
       body: _selectedIndex == 0
           ? _buildHomeContent(context, riwayatItems)
@@ -66,15 +66,13 @@ class _HomeScreenState extends State<Homescreen> {
 
   Widget _buildHomeContent(BuildContext context, List<Map<String, String>> riwayatItems) {
     final List<_MenuItem> menuItems = [
-      _MenuItem("QR Code", Icons.qr_code, const Qrscanscreen()),
+     
       _MenuItem("Aset Tersedia", Icons.checklist, const AsetTersediaScreen()),
       _MenuItem("Aset Dipinjam", Icons.inventory, const AsetDipinjamScreen()),
       _MenuItem("Pegawai", Icons.group, const PegawaiScreen()),
     ];
 
-    return Scaffold(
-  backgroundColor: Colors.white,
-  body: SafeArea(
+    return SafeArea(
       child: Column(
         children: [
           Container(
@@ -107,23 +105,9 @@ class _HomeScreenState extends State<Homescreen> {
                   ),
                   Positioned(
                     right: 10,
-                    bottom: -30,
+                    bottom: -10,
                     child: ClipRRect(
-                      child: Image.asset('assets/pegawai.png', width: 10, fit: BoxFit.cover),
-                    ),
-                  ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: IconButton(
-                      icon: const Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 30),
-                      onPressed: () {
-                        if (isAdminApproved) {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminPage()));
-                        } else {
-                          _showAdminDialog(context);
-                        }
-                      },
+                      child: Image.asset('assets/pegawai.png', width: 80, fit: BoxFit.cover),
                     ),
                   ),
                 ],
@@ -138,15 +122,17 @@ class _HomeScreenState extends State<Homescreen> {
               itemCount: menuItems.length,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 30,
-                childAspectRatio: 0.8,
+                crossAxisCount: 3,
+                mainAxisSpacing: 20,
+                crossAxisSpacing: 20,
+                childAspectRatio: 1,
               ),
               itemBuilder: (context, index) {
                 final item = menuItems[index];
                 return GestureDetector(
-                  onTap: () => navigateTo(context, item.page),
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => item.page));
+      },
                   child: Column(
                     children: [
                       Container(
@@ -167,12 +153,12 @@ class _HomeScreenState extends State<Homescreen> {
               },
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 2),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
-                const Text("Riwayat Peminjaman", style: TextStyle(fontSize: 26, fontWeight: FontWeight.w600)),
+                const Text("Riwayat Peminjaman", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
                 const Spacer(),
                 GestureDetector(
                   onTap: () => navigateTo(context, const RiwayatScreen()),
@@ -252,7 +238,6 @@ class _HomeScreenState extends State<Homescreen> {
           ),
         ],
       ),
-  ),
     );
   }
 
@@ -276,22 +261,25 @@ class _HomeScreenState extends State<Homescreen> {
             ],
           ),
         ),
-        Positioned(
-          bottom: 20,
-          child: GestureDetector(
-            onTap: () => setState(() => _selectedIndex = 1),
-            child: Container(
-              width: 70,
-              height: 70,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF6CA9D4),
-                border: Border.all(color: Colors.black, width: 3),
-              ),
-              child: const Icon(Icons.qr_code, size: 34, color: Colors.white),
-            ),
-          ),
-        ),
+       Positioned(
+  bottom: 20,
+  child: GestureDetector(
+    onTap: () {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const Qrscanscreen()));
+    },
+    child: Container(
+      width: 70,
+      height: 70,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFF6CA9D4),
+        border: Border.all(color: Colors.black, width: 3),
+      ),
+      child: const Icon(Icons.qr_code, size: 34, color: Colors.white),
+    ),
+  ),
+),
+
       ],
     );
   }
@@ -308,44 +296,13 @@ class _HomeScreenState extends State<Homescreen> {
       ),
     );
   }
-
-  void _showAdminDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                "Anda tidak memiliki izin untuk\nmengakses halaman ini.\n\nSilakan hubungi administrator\njika membutuhkan akses\nsebagai Admin Gudang.",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                style: TextButton.styleFrom(
-                  backgroundColor: Colors.blue[200],
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                ),
-                child: const Text("Oke", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _MenuItem {
-  final String label;
-  final IconData icon;
-  final Widget page;
+  final String label
+;
+final IconData icon;
+final Widget page;
 
-  _MenuItem(this.label, this.icon, this.page);
+_MenuItem(this.label, this.icon, this.page);
 }

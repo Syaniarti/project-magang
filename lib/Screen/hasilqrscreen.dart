@@ -155,13 +155,11 @@ class _HasilQrScreenState extends State<HasilQrScreen> {
                                 //   fit: BoxFit.cover,
                                 // ),
                                 Image.network(
-                                'http://localhost:8000/proxy-image?path=${asetData!['dokumentasi_barang']}',
-                                errorBuilder: (context, error, stackTrace) {
-                                  return const Text('😢 Gambar gagal dimuat');
-                                },
-                              ),
-
-
+                                  'http://localhost:8000/proxy-image?path=${asetData!['dokumentasi_barang']}',
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Text('😢 Gambar gagal dimuat');
+                                  },
+                                ),
                               ] else
                                 const Text('Tidak ada dokumentasi'),
                             ],
@@ -178,7 +176,8 @@ class _HasilQrScreenState extends State<HasilQrScreen> {
                                   context,
                                   MaterialPageRoute(
                                     builder:
-                                        (context) => const PinjamAsetScreen(),
+                                        (context) =>
+                                            PinjamAsetScreen(aset: asetData),
                                   ),
                                 );
                               },
@@ -207,42 +206,7 @@ class _HasilQrScreenState extends State<HasilQrScreen> {
                               ),
                             ),
                             const SizedBox(height: 10),
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (context) =>
-                                            const KembalikanAsetScreen(),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Color.fromARGB(
-                                  255,
-                                  27,
-                                  48,
-                                  83,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                  horizontal: 30,
-                                ),
-                              ),
-                              child: const Text(
-                                "Pengembalian",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
+                           
                             OutlinedButton(
                               onPressed: () {
                                 Navigator.pushReplacement(

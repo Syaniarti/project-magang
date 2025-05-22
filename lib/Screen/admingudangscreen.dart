@@ -39,7 +39,7 @@ class _AdminPageState extends State<AdminPage> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(context, true),
                   ),
                   Expanded(
                     child: Container(

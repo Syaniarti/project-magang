@@ -13,8 +13,8 @@ import 'aset_tersedia_screen.dart';
 import 'aset_dipinjam_screen.dart';
 
 class KembalikanAsetScreen extends StatefulWidget {
-  final Map<String, dynamic>? Aset;
-  const KembalikanAsetScreen({super.key, this.Aset});
+  final dynamic aset;
+  const KembalikanAsetScreen({Key? key, required this.aset}) : super(key: key);
 
   @override
   State<KembalikanAsetScreen> createState() => _KembalikanAsetScreenState();
@@ -31,17 +31,18 @@ class _KembalikanAsetScreenState extends State<KembalikanAsetScreen> {
   final _serialNumberController = TextEditingController();
   final _namaController = TextEditingController();
   final _teleponController = TextEditingController();
-  final lokasiPengembalianController = TextEditingController();
+  String? lokasiPengembalianValue;
 
   String? selectedKondisi;
+  DateTime selectedDate = DateTime.now();
 
   @override
   void initState() {
     super.initState();
     _ambilDataProfil();
-    if (widget.Aset != null) {
-      _namaAsetController.text = widget.Aset!['Nama_Aset'] ?? '';
-      _serialNumberController.text = widget.Aset!['Serial_Number'] ?? '';
+    if (widget.aset != null) {
+      _namaAsetController.text = widget.aset!['Nama_Aset'] ?? '';
+      _serialNumberController.text = widget.aset!['Serial_Number'] ?? '';
     }
   }
 
@@ -74,10 +75,10 @@ class _KembalikanAsetScreenState extends State<KembalikanAsetScreen> {
       return;
     }
 
-    if (widget.Aset == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Data aset tidak tersedia")),
-      );
+    if (widget.aset == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Data aset tidak tersedia")));
       return;
     }
 
@@ -87,16 +88,20 @@ class _KembalikanAsetScreenState extends State<KembalikanAsetScreen> {
         Uri.parse('http://127.0.0.1:8000/api/asetdikembalikan'),
       );
 
-      request.fields['nama'] = _namaAsetController.text;
-      request.fields['serial_number'] = _serialNumberController.text;
-      request.fields['nama_peminjam'] = _namaController.text;
-      request.fields['telepon'] = _teleponController.text;
-      request.fields['kondisi_aset'] = selectedKondisi!;
-      request.fields['lokasi_terkini'] = widget.Aset!['Lokasi_Tujuan'] ?? '-';
-      request.fields['lokasi_pengembalian'] =
-          lokasiPengembalianController.text;
-      request.fields['tanggal_pengembalian'] =
-          DateTime.now().toIso8601String();
+      //  final prefs = await SharedPreferences.getInstance();
+
+      // final token = prefs.getString('token') ?? '';
+      // request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+      request.fields['peminjaman_id'] = widget.aset!['id'].toString();
+      request.fields['Nama_Aset'] = _namaAsetController.text;
+      request.fields['Serial_Number'] = _serialNumberController.text;
+      request.fields['Nama_Pengembali'] = _namaController.text;
+      request.fields['No_Telp'] = _teleponController.text;
+      request.fields['Kondisi'] = selectedKondisi!;
+      request.fields['Lokasi_Terkini'] = widget.aset!['Lokasi_Tujuan'] ?? '-';
+      request.fields['Lokasi_Pengembalian'] = lokasiPengembalianValue ?? '-';
+      request.fields['Tanggal_Peminjaman'] =  '${selectedDate.toIso8601String().substring(0,10)}';
 
       if (!kIsWeb) {
         var imageFile = await http.MultipartFile.fromPath(
@@ -130,7 +135,7 @@ class _KembalikanAsetScreenState extends State<KembalikanAsetScreen> {
           Future.delayed(const Duration(seconds: 1), () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const AsetDipinjamScreen()),
+              MaterialPageRoute(builder: (_) => const AsetTersediaScreen()),
             );
           });
         } else {
@@ -140,13 +145,15 @@ class _KembalikanAsetScreenState extends State<KembalikanAsetScreen> {
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Gagal menyimpan. Code: ${response.statusCode}")),
+          SnackBar(
+            content: Text("Gagal menyimpan. Code: ${response.statusCode}"),
+          ),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
     }
   }
 
@@ -160,10 +167,7 @@ class _KembalikanAsetScreenState extends State<KembalikanAsetScreen> {
               text: text,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            const TextSpan(
-              text: ' *',
-              style: TextStyle(color: Colors.red),
-            ),
+            const TextSpan(text: ' *', style: TextStyle(color: Colors.red)),
           ],
         ),
       ),
@@ -176,14 +180,11 @@ class _KembalikanAsetScreenState extends State<KembalikanAsetScreen> {
     _teleponController.dispose();
     _namaAsetController.dispose();
     _serialNumberController.dispose();
-    lokasiPengembalianController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final lokasiTerkini = widget.Aset?['Lokasi_Tujuan'] ?? '-';
-
     return Scaffold(
       backgroundColor: const Color(0xFF3C5A99),
       body: Center(
@@ -225,7 +226,9 @@ class _KembalikanAsetScreenState extends State<KembalikanAsetScreen> {
                   TextFormField(
                     controller: _namaAsetController,
                     readOnly: true,
-                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                   const SizedBox(height: 12),
 
@@ -234,29 +237,35 @@ class _KembalikanAsetScreenState extends State<KembalikanAsetScreen> {
                   TextFormField(
                     controller: _serialNumberController,
                     readOnly: true,
-                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                   const SizedBox(height: 12),
 
-                  buildLabel('Nama Peminjam'),
+                  buildLabel('Nama Pengembali'),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _namaController,
                     readOnly: true,
-                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                   const SizedBox(height: 12),
 
-                  buildLabel('Nomor Telepon'),
+                  buildLabel('No Telp/WhatsApp'),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _teleponController,
                     keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                   const SizedBox(height: 12),
 
-                  buildLabel('Kondisi Aset Saat Ini'),
+                  buildLabel('Kondisi'),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
                     value: selectedKondisi,
@@ -267,70 +276,140 @@ class _KembalikanAsetScreenState extends State<KembalikanAsetScreen> {
                       fillColor: Colors.white,
                     ),
                     hint: const Text('Pilih kondisi'),
-                    items: [
-                      'Baru',
-                      'Baik',
-                      'Rusak Ringan',
-                      'Rusak Berat',
-                      'Tidak Layak Pakai',
-                    ]
-                        .map((value) => DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            ))
-                        .toList(),
+                    items:
+                        [
+                              'Baru',
+                              'Baik',
+                              'Rusak Ringan',
+                              'Rusak Berat',
+                              'Tidak Layak Pakai',
+                            ]
+                            .map(
+                              (value) => DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value),
+                              ),
+                            )
+                            .toList(),
                     onChanged: (value) {
                       setState(() => selectedKondisi = value);
                     },
-                    validator: (value) =>
-                        value == null ? 'Kondisi wajib dipilih' : null,
+                    validator:
+                        (value) =>
+                            value == null ? 'Kondisi wajib dipilih' : null,
                   ),
                   const SizedBox(height: 12),
 
                   buildLabel('Lokasi Terkini'),
                   const SizedBox(height: 6),
                   TextFormField(
-                    initialValue: lokasiTerkini,
+                    initialValue: widget.aset?['Lokasi_Tujuan'] ?? '-',
                     readOnly: true,
-                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                   const SizedBox(height: 12),
 
-                  buildLabel('Lokasi Pengembalian'),
+                  buildLabel('Lokasi Tujuan'),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: lokasiPengembalianValue,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
+                    hint: const Text('Pilih lokasi tujuan'),
+                    items:
+                        ['ULTG Banda Aceh', 'ULTG Meulaboh', 'ULTG Langsa']
+                            .map(
+                              (value) => DropdownMenuItem(
+                                value: value,
+                                child: Text(value),
+                              ),
+                            )
+                            .toList(),
+                    onChanged:
+                        (value) =>
+                            setState(() => lokasiPengembalianValue = value),
+                    validator:
+                        (value) =>
+                            value == null ? 'Lokasi wajib dipilih' : null,
+                  ),
+                  const SizedBox(height: 12),
+
+                  buildLabel('Tanggal Pengembalian'),
                   const SizedBox(height: 6),
                   TextFormField(
-                    controller: lokasiPengembalianController,
-                    decoration: const InputDecoration(border: OutlineInputBorder()),
-                    validator: (value) =>
-                        value == null || value.isEmpty ? 'Lokasi wajib diisi' : null,
+                    readOnly: true,
+                    enabled: false,
+                    initialValue:
+                        '${selectedDate.day.toString().padLeft(2, '0')}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.year}',
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                   const SizedBox(height: 12),
 
-                  buildLabel('Upload Dokumentasi Aset'),
+                  buildLabel('Dokumentasi Aset'),
                   const SizedBox(height: 6),
-                  ElevatedButton.icon(
-                    onPressed: _pickImage,
-                    icon: const Icon(Icons.upload_file),
-                    label: const Text("Pilih Gambar"),
-                  ),
-                  const SizedBox(height: 10),
-                  if (_selectedImage != null || _webImage != null)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: _selectedImage != null
-                          ? Image.file(_selectedImage!, width: 200)
-                          : Image.memory(_webImage!, width: 200),
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Container(
+                      height: 170,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child:
+                          _webImage != null || _selectedImage != null
+                              ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child:
+                                    kIsWeb
+                                        ? Image.memory(
+                                          _webImage!,
+                                          fit: BoxFit.contain,
+                                        )
+                                        : Image.file(
+                                          _selectedImage!,
+                                          fit: BoxFit.contain,
+                                        ),
+                              )
+                              : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(
+                                    Icons.cloud_upload,
+                                    size: 40,
+                                    color: Colors.grey,
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Klik untuk upload foto',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ],
+                              ),
                     ),
+                  ),
                   const SizedBox(height: 20),
 
-                  ElevatedButton(
+                   ElevatedButton(
                     onPressed: _submitForm,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 40, vertical: 14),
+                      backgroundColor: const Color(0xFF82B1FF),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      minimumSize: const Size.fromHeight(45),
                     ),
-                    child: const Text("Kembalikan Aset"),
+                    child: const Text(
+                      'Kembalikan Aset',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
                   ),
                 ],
               ),

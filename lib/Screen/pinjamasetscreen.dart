@@ -10,8 +10,10 @@ import 'package:http_parser/http_parser.dart';
 import 'aset_dipinjam_screen.dart';
 
 class PinjamAsetScreen extends StatefulWidget {
-  final Map<String, dynamic>? Aset;
-  const PinjamAsetScreen({super.key, this.Aset});
+  final Map<String, dynamic>? aset;
+
+const PinjamAsetScreen({super.key, this.aset});
+
 
   @override
   State<PinjamAsetScreen> createState() => _PinjamAsetScreenState();
@@ -37,9 +39,9 @@ class _PinjamAsetScreenState extends State<PinjamAsetScreen> {
     super.initState();
     _ambilDataProfil();
 
-    if (widget.Aset != null) {
-      _namaAsetController.text = widget.Aset!['Nama_Aset'] ?? '';
-      _serialNumberController.text = widget.Aset!['Serial_Number'] ?? '';
+    if (widget.aset != null) {
+      _namaAsetController.text = widget.aset!['Nama_Aset'] ?? '';
+      _serialNumberController.text = widget.aset!['Serial_Number'] ?? '';
     }
   }
 
@@ -71,7 +73,7 @@ class _PinjamAsetScreenState extends State<PinjamAsetScreen> {
         return;
       }
 
-      if (widget.Aset == null) {
+      if (widget.aset == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Data aset tidak tersedia")),
         );
@@ -91,7 +93,7 @@ class _PinjamAsetScreenState extends State<PinjamAsetScreen> {
         request.fields['Nama_Peminjam'] = _namaController.text;
         request.fields['No_Telp'] = _teleponController.text;
         request.fields['Kondisi'] = selectedKondisi!;
-        request.fields['Lokasi_Terkini'] = widget.Aset!['Lokasi_Terkini'];
+        request.fields['Lokasi_Terkini'] = widget.aset!['Lokasi_Terkini'];
         request.fields['Lokasi_Tujuan'] = selectedLokasi!;
         request.fields['Tanggal_Peminjaman'] =  '${selectedDate.toIso8601String().substring(0,10)}'; 
 
@@ -312,7 +314,7 @@ class _PinjamAsetScreenState extends State<PinjamAsetScreen> {
                   buildLabel('Lokasi Terkini'),
                   const SizedBox(height: 6),
                   TextFormField(
-                    initialValue: widget.Aset?['Lokasi_Terkini'] ?? '-',
+                    initialValue: widget.aset?['Lokasi_Terkini'] ?? '-',
                     readOnly: true,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
