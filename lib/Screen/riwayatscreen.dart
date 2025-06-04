@@ -193,16 +193,17 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                             onTap: () => _showDetailDialog(item),
                             borderRadius: BorderRadius.circular(12),
                             child: Card(
-                              elevation: 4,
+                              elevation: 2,
                               margin: const EdgeInsets.only(bottom: 12),
-                              color: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.all(12),
                                 child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    // Gambar
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
                                       child:
@@ -212,8 +213,8 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                                       .isNotEmpty
                                               ? Image.network(
                                                 'http://localhost:8000/proxy-image?path=${item.dokumentasi_barang}',
-                                                width: 60,
-                                                height: 60,
+                                                width: 50,
+                                                height: 50,
                                                 fit: BoxFit.cover,
                                                 errorBuilder: (
                                                   context,
@@ -222,18 +223,24 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                                 ) {
                                                   return const Icon(
                                                     Icons.broken_image,
-                                                    size: 60,
+                                                    size: 50,
                                                     color: Colors.grey,
                                                   );
                                                 },
                                               )
-                                              : const Icon(
-                                                Icons.image,
-                                                size: 60,
-                                                color: Colors.grey,
+                                              : Container(
+                                                width: 50,
+                                                height: 50,
+                                                color: Colors.grey.shade300,
+                                                child: const Icon(
+                                                  Icons.image,
+                                                  color: Colors.white,
+                                                ),
                                               ),
                                     ),
                                     const SizedBox(width: 12),
+
+                                    // Informasi Aset (Nama & Serial)
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment:
@@ -243,28 +250,76 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                                             item.Nama_Aset,
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
+                                              fontSize: 16,
                                             ),
                                           ),
+                                          const SizedBox(height: 4),
                                           Text(
-                                            "Serial Number: ${item.Serial_Number}",
+                                            item.Serial_Number,
                                             style: const TextStyle(
                                               color: Colors.black54,
-                                            ),
-                                          ),
-                                          Text(
-                                            "Status: ${item.Status}",
-                                            style: TextStyle(
-                                              color:
-                                                  item.Status.toLowerCase() ==
-                                                          "selesai"
-                                                      ? Colors.green
-                                                      : Colors.red,
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                    const Icon(Icons.chevron_right),
+
+                                    // Status dan Tanggal
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          item.Status.toLowerCase() == "selesai"
+                                              ? "Selesai"
+                                              : "Belum Selesai",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color:
+                                                item.Status.toLowerCase() ==
+                                                        "selesai"
+                                                    ? Colors.green
+                                                    : Colors.red,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.logout,
+                                              color: Colors.red,
+                                              size: 16,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              item.Tanggal_Peminjaman,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.login,
+                                              color: Colors.teal,
+                                              size: 16,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              item.Tanggal_Pengembalian ?? "-",
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ],
                                 ),
                               ),

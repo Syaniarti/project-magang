@@ -29,7 +29,7 @@ class RiwayatItem {
       Tanggal_Peminjaman: json['Tanggal_Peminjaman'] ?? '',
       Lokasi_Pengembalian: json['Lokasi_Pengembalian'],
       Tanggal_Pengembalian: json['Tanggal_Pengembalian'],
-      Status: json['Status'] ?? '',
+      Status: json['tanggal_pengembalian'] != null ? 'Selesai' : 'Selesai',
       dokumentasi_barang: json['dokumentasi_barang'],
 
     );

@@ -25,7 +25,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
   String jabatan = '';
   String email = '';
   String notelp = '';
-  String role = '';
+ 
 
   @override
   void initState() {
@@ -62,7 +62,6 @@ class _ProfilScreenState extends State<ProfilScreen> {
             jabatan = user['jabatan'] ?? '';
             email = user['email'] ?? '';
             notelp = user['no_telp'] ?? '';
-            role = user['role'] ?? '';
           });
 
       await prefs.setString('nama', nama);
@@ -70,7 +69,6 @@ class _ProfilScreenState extends State<ProfilScreen> {
       await prefs.setString('jabatan', jabatan);
       await prefs.setString('email', email);
       await prefs.setString('no_telp', notelp);
-      await prefs.setString('role', role);
     } else {
       print("User null, load dari SharedPreferences");
       loadFromPrefs(prefs);
@@ -87,7 +85,6 @@ void loadFromPrefs(SharedPreferences prefs) {
     jabatan = prefs.getString('jabatan') ?? '';
     email = prefs.getString('email') ?? '';
     notelp = prefs.getString('no_telp') ?? '';
-    role = prefs.getString('role') ?? '';
   });
 }
 
@@ -360,17 +357,6 @@ void loadFromPrefs(SharedPreferences prefs) {
                   child: ListTile(
                     leading: const Icon(Icons.work),
                     title: Text(jabatan.isNotEmpty ? jabatan : "-"),
-                  ),
-                ),
-
-                Card(
-                  color: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    leading: const Icon(Icons.admin_panel_settings),
-                    title: Text(role.isNotEmpty ? role : "-"),
                   ),
                 ),
 

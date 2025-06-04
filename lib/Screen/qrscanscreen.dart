@@ -72,7 +72,7 @@ class _Qrscanscreen extends State<Qrscanscreen> {
           right: 0,
           child: Center(
             child: Text(
-              'Scan Barcode',
+              'Scan QRCode',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
